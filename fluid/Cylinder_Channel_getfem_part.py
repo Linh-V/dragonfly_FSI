@@ -16,7 +16,7 @@ https://jsdokken.com/dolfinx-tutorial/chapter2/ns_code2.html
 # Generate the mesh
 if __name__ == "__main__":
     #output directory to save results
-    output_dir = "fluid/results_cylinder_channel_getfem_quad_fenics_new_mesh_ahahhaah"
+    output_dir = "fluid/results_cylinder_channel"
     os.makedirs(output_dir, exist_ok=True)
 
     ##########
@@ -280,7 +280,6 @@ if __name__ == "__main__":
         md2.set_variable("u_star", u_star)   
         md2.solve("noisy", "max_iter", 100, "max_res", 1e-12, "lsolver", "superlu")
         phi= md2.variable("phi")
-        
 
         #################################
         # STEP 3: Solve Model 3 (i.e. Solve Velocity correction)
