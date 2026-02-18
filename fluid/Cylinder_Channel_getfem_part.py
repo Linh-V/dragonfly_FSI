@@ -16,7 +16,11 @@ https://jsdokken.com/dolfinx-tutorial/chapter2/ns_code2.html
 # Generate the mesh
 if __name__ == "__main__":
     #output directory to save results
+<<<<<<< HEAD
     output_dir = "fluid/results_cylinder_channel"
+=======
+    output_dir = "fluid/results_cylinder_channel_getfem_quad_fenics_new_mesh_mumps"
+>>>>>>> d4122feab1d857fd376af0792dc3d0e34c28fb98
     os.makedirs(output_dir, exist_ok=True)
 
     ##########
@@ -73,7 +77,8 @@ if __name__ == "__main__":
     ## INTEGRATION METHOD ##
     ########################
 
-    mim = gf.MeshIm(Mesh, gf.Integ('IM_QUAD(17)'))
+    # check with fenics
+    mim = gf.MeshIm(Mesh, gf.Integ('IM_QUAD(5)'))
 
     ##################
     ## FEM ELEMENTS ##
@@ -81,7 +86,7 @@ if __name__ == "__main__":
 
     # Velocity: P2 elements (quadratic)
     mf_v = gf.MeshFem(Mesh, 2)
-    mf_v.set_fem(gf.Fem('FEM_QK(2,3)'))
+    mf_v.set_fem(gf.Fem('FEM_QK(2,2)'))
     
     # Pressure: P1 elements (linear)
     mf_p = gf.MeshFem(Mesh, 1)
@@ -269,7 +274,7 @@ if __name__ == "__main__":
         md1.set_variable('V_inlet', V_inlet) 
 
         
-        md1.solve("noisy", "max_iter", 100, "max_res", 1e-12, "lsolver", "superlu")
+        md1.solve("noisy", "max_iter", 100, "max_res", 1e-12, "lsolver", "mumps")
         u_star = md1.variable("u")
 
         #################################

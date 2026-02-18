@@ -1,0 +1,88 @@
+FSI-1 Benchmark — Single Mesh Monolithic ALE
+Run date: 2026-02-14 18:02:08
+
+============================================================
+Problem Parameters
+============================================================
+  Channel: L = 2.5, H = 0.41
+  Cylinder: center = (0.2, 0.2), r = 0.05
+  Beam: L = 0.35, W = 0.02
+  Fluid: rho = 1000.0, nu = 0.001
+  Solid: rho = 1000.0, E = 1400000.0, nu = 0.4
+         mu_s = 500000.0, lambda_s = 2000000.0000000007
+  Inlet: U_mean = 0.2
+
+============================================================
+Mesh Information
+============================================================
+  Total points:       893
+  Total convexes:     824
+  Fluid convexes:     790
+  Beam convexes:      34
+  Fluid outer faces:  172
+  Beam outer faces:   38
+
+============================================================
+Normal Verification
+============================================================
+  Fluid-side normal integral: [-2.00000000e-02  3.90312782e-16]
+  Solid-side normal integral: [ 2.00000000e-02 -9.19403442e-17]
+  Sum (should be ~0):         [0.00000000e+00 2.98372438e-16]
+
+============================================================
+Degrees of Freedom (Filtered)
+============================================================
+  Fluid mesh displacement (u_f): 6664
+  Fluid velocity          (v_f): 6664
+  Pressure                (p_f): 876
+  Solid displacement      (u_s): 350
+  Lagrange multiplier    (mult): 146
+  ─────────────────────────────────
+  Total DOFs:                     14700
+
+============================================================
+FEM Information
+============================================================
+  Velocity/Displacement FEM: FEM_QK(2,2) (Q2)
+  Pressure FEM:              FEM_QK(2,1) (Q1)
+  Integration:               IM_QUAD(5)
+
+
+============================================================
+Solve completed successfully!
+============================================================
+
+============================================================
+FSI-1 Benchmark Results
+============================================================
+Displacement at A = (0.6, 0.2):
+  u_x(A) = 2.2412789035e-05
+  u_y(A) = 8.2567947864e-04
+
+Forces (Wick eq. 254-255):
+  F_D (drag) = 1.4171677864e+01
+  F_L (lift) = 7.6444773811e-01
+
+  Cylinder traction:  [-1.1533678788e+01, -3.5049212541e-01]
+  Interface traction: [-2.6379990764e+00, -4.1395561270e-01]
+
+Pressure difference:
+  p(0.15, 0.2)                 = 1.4501480668e+02
+  p(0.25, 0.2)                 = 1.0623293199e-10
+  p(0.15,0.2) - p(0.25,0.2)   = 1.4501480668e+02
+
+============================================================
+Reference Values (Wick Table 9, finest mesh)
+============================================================
+  u_x(A) = (2.25 +-0.02)e-05   (computed: 2.2413e-05)
+  u_y(A) = (8.20+-0.05)e-04     (computed: 8.2568e-04)
+  F_D    = 15.3776       (computed: 14.1717)
+  F_L    = 0.74111       (computed: 0.76445)
+
+✓ Fluid results exported to FSI/FSI_Benchmark_I_Results_1mesh/fluid_results.vtu
+✓ Solid results exported to FSI/FSI_Benchmark_I_Results_1mesh/solid_results.vtu
+✓ Log saved to FSI/FSI_Benchmark_I_Results_1mesh/results_log.txt
+
+============================================================
+Analysis complete!
+============================================================

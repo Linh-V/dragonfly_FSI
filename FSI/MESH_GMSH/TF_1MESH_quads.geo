@@ -2,7 +2,7 @@
 
 h_ref = 0.5;
 
-L = 2.5; // m
+L = 2.2; // m
 H = 0.41; // m
 c = 0.2; // m is the x-position of cylinder center
 r = 0.05; // m radius of the cylinder
@@ -34,8 +34,8 @@ Point(10) = {x_attach, c - h/2, 0, h_ref/20}; // Bottom of beam at cylinder
 Point(11) = {x_attach, c + h/2, 0, h_ref/20}; // Top of beam at cylinder
 
 // Beam end points
-Point(12) = {x_attach + l, c + h/2, 0, h_ref/20}; // Top right of beam
-Point(13) = {x_attach + l, c - h/2, 0, h_ref/20}; // Bottom right of beam
+Point(12) = {0.6, c + h/2, 0, h_ref/20}; // Top right of beam
+Point(13) = {0.6, c - h/2, 0, h_ref/20}; // Bottom right of beam
 
 // points for meshing
 Point(14) = {c - r*Cos(Pi/4), c - r*Sin(Pi/4), 0, h_ref/20}; // circle bottom-left
@@ -93,7 +93,7 @@ Circle(19) = {15, 5, 14};
 Circle(20) = {14, 5, 17};
 Circle(21) = {17, 5, 10};
 Line(22) = {11, 10};
-Line(23) = {10, 33};
+Line(23) = {33, 10};
 Line(24) = {33, 13};
 Line(25) = {13, 12};
 Line(26) = {12, 32};
@@ -150,7 +150,7 @@ Curve Loop(11) = {48, 7, -49, 25};
 Plane Surface(11) = {11};
 Curve Loop(12) = {41, 20, -42, -51};
 Plane Surface(12) = {12};
-Curve Loop(13) = {23, 34, 42, 21};
+Curve Loop(13) = {-23, 34, 42, 21};
 Plane Surface(13) = {13};
 Curve Loop(14) = {24, 38, -52, -34};
 Plane Surface(14) = {14};
@@ -167,22 +167,23 @@ Plane Surface(19) = {19};
 
 // BEAM 
 
-Curve Loop(20) = {22, 23, - 28, 27};
+Curve Loop(20) = {22, -23, - 28, 27};
 Plane Surface(20) = {20};
 
 Curve Loop(21) = {28, 24, 25,26};
 Plane Surface(21) = {21};
 
 //TRANSFINITE CURVE DEFINITIONS
-
-N1 = 3;
-N2= 3;
-N3 = 5;
-N4 = 5;
-N5 = 3;
-N6 = 21;
-N7 = 25;
+N_mult = 1.2;
+N1 = N_mult*4;
+N2= N_mult*4;
+N3 = N_mult*6;
+N4 = N_mult*6;
+N5 = N_mult*3;
+N6 = N_mult*10;
+N7 = N_mult*15;
 pf = 1.1;
+pf_db = 1/1.3;
 // Block 1
 //+
 Transfinite Curve {16, 29} = N1 Using Progression 1;
@@ -219,7 +220,7 @@ Transfinite Surface {2};
 //+
 Transfinite Curve {45, 18} = N3 Using Progression 1;
 //+
-Transfinite Curve {40, 43} = N4 Using Progression 1;
+Transfinite Curve {40, 43} = N4 Using Progression pf_db;
 //+
 Transfinite Surface {7};
 
@@ -227,7 +228,7 @@ Transfinite Surface {7};
 //+
 Transfinite Curve {30, 19} = N3 Using Progression 1;
 //+
-Transfinite Curve {40, 41} = N4 Using Progression 1;
+Transfinite Curve {40, 41} = N4 Using Progression pf_db;
 //+
 Transfinite Surface {6};
 
@@ -236,7 +237,7 @@ Transfinite Surface {6};
 //+
 Transfinite Curve {51, 20} = N3 Using Progression 1;
 //+
-Transfinite Curve {41, 42} = N4 Using Progression 1;
+Transfinite Curve {41, 42} = N4 Using Progression pf_db;
 //+
 Transfinite Surface {12};
 
@@ -252,7 +253,7 @@ Transfinite Surface {17};
 //+
 Transfinite Curve {21, 34} = N3 Using Progression 1;
 //+
-Transfinite Curve {42, 23} = N4 Using Progression 1;
+Transfinite Curve {42, 23} = N4 Using Progression pf_db;
 //+
 Transfinite Surface {13};
 
@@ -261,7 +262,7 @@ Transfinite Surface {13};
 //+
 Transfinite Curve {17, 33} = N3 Using Progression 1;
 //+
-Transfinite Curve {27, 43} = N4 Using Progression 1;
+Transfinite Curve {27, 43} = N4 Using Progression pf_db;
 //+
 Transfinite Surface {8};
 
@@ -354,7 +355,7 @@ Transfinite Curve {26, 24} = N6 Using Progression 1;
 Transfinite Curve {25, 28} = N5 Using Progression 1;
 Transfinite Surface {21};
 //
-Transfinite Curve {23, 27} = N4 Using Progression 1;
+Transfinite Curve {23, 27} = N4 Using Progression pf_db;
 //+
 Transfinite Curve {22, 28} = N5 Using Progression 1;
 //+
@@ -369,7 +370,7 @@ Physical Curve("BEAM_INTERFACE", 59) = {27, 26, 25, 24, 23};
 
 Physical Surface("FLUID", 60) = {1, 2, 3, 4, 5, 6, 7, 8, 13, 12, 16, 17, 18, 14, 9, 10, 11, 15, 19};
 Physical Surface("BEAM", 61) = {20, 21};
-
+Recombine Surface {1:21};
  Mesh 2;
- Save "TF_1MESH_tri.msh";
+ Save "TF_1MESH_quads.msh";
  

@@ -1,0 +1,83 @@
+FSI-1 Benchmark — Two Mesh Monolithic ALE
+Run date: 2026-02-14 17:57:15
+
+============================================================
+Problem Parameters
+============================================================
+  Channel: L = 2.5, H = 0.41
+  Cylinder: center = (0.2, 0.2), r = 0.05
+  Beam: L = 0.35, W = 0.02
+  Fluid: rho = 1000.0, nu = 0.001
+  Solid: rho = 1000.0, E = 1400000.0, nu = 0.4
+         mu_s = 500000.0, lambda_s = 2000000.0000000007
+  Inlet: U_mean = 0.2
+
+============================================================
+Mesh Information
+============================================================
+  Fluid mesh:
+    Points:   876
+    Convexes: 790
+  Solid mesh:
+    Points:   54
+    Convexes: 34
+
+============================================================
+Degrees of Freedom
+============================================================
+  Fluid mesh displacement (u_f): 6664
+  Fluid velocity          (v_f): 6664
+  Pressure                (p_f): 876
+  Solid displacement      (u_s): 350
+  Lagrange multiplier    (mult): 146
+  ─────────────────────────────────
+  Total DOFs:                     14700
+
+============================================================
+FEM Information
+============================================================
+  Velocity/Displacement FEM: FEM_QK(2,2) (Q2)
+  Pressure FEM:              FEM_QK(2,1) (Q1)
+  Integration:               IM_QUAD(9)
+
+============================================================
+Starting FSI-1 Static Analysis (Two Mesh)
+============================================================
+
+Solve completed successfully!
+============================================================
+
+============================================================
+FSI-1 Benchmark Results
+============================================================
+Displacement at A = (0.6, 0.2):
+  u_x(A) = 2.2345884699e-05
+  u_y(A) = 8.2689055001e-04
+
+Forces (Wick eq. 254-255):
+  F_D (drag) = 1.4161797360e+01
+  F_L (lift) = 7.6180091916e-01
+
+  Cylinder traction:  [-1.1534475504e+01, -3.4796483830e-01]
+  Interface traction: [-2.6273218554e+00, -4.1383608085e-01]
+
+Pressure difference:
+  p(0.15, 0.2)                 = 1.4527240602e+02
+  p(0.25, 0.2)                 = 0.0000000000e+00
+  p(0.15,0.2) - p(0.25,0.2)   = 1.4527240602e+02
+
+============================================================
+Reference Values (Wick Table 9, finest mesh)
+============================================================
+  u_x(A) = 2.2703e-05   (computed: 2.2346e-05)
+  u_y(A) = 8.1809e-04   (computed: 8.2689e-04)
+  F_D    = 15.3776       (computed: 14.1618)
+  F_L    = 0.74111       (computed: 0.76180)
+
+✓ Fluid results exported to FSI/FSI_Benchmark_I_Results_2meshes/fluid_static.vtu
+✓ Solid results exported to FSI/FSI_Benchmark_I_Results_2meshes/solid_static.vtu
+✓ Log saved to FSI/FSI_Benchmark_I_Results_2meshes/results_log.txt
+
+============================================================
+Analysis complete!
+============================================================

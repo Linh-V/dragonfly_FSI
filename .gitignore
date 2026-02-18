@@ -1,7 +1,6 @@
 *.vtu
 *.vtu
 *.vtk
-*.msh
 *.npy
 *.zip
 Results_*/

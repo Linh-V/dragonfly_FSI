@@ -39,7 +39,7 @@ from ufl import (
     as_vector,
     div,
     dot,
-    dx,
+    dx, # it's possible to specify quadratur points
     inner,
     lhs,
     grad,
@@ -207,27 +207,56 @@ A3 = assemble_matrix(a3)
 A3.assemble()
 b3 = create_vector(extract_function_spaces(L3))
 
-# Solver for step 1
+# direct solvers:
+# ── Solver 1: Tentative velocity (non-symmetric) ──────────────────────────────
 solver1 = PETSc.KSP().create(mesh.comm)
 solver1.setOperators(A1)
-solver1.setType(PETSc.KSP.Type.BCGS)
+solver1.setType(PETSc.KSP.Type.PREONLY)
 pc1 = solver1.getPC()
-pc1.setType(PETSc.PC.Type.JACOBI)
+pc1.setType(PETSc.PC.Type.LU)
+pc1.setFactorSolverType("mumps")          # or "superlu_dist"
 
-# Solver for step 2
+
+# ── Solver 2: Pressure correction (SPD → can use Cholesky) ───────────────────
 solver2 = PETSc.KSP().create(mesh.comm)
 solver2.setOperators(A2)
-solver2.setType(PETSc.KSP.Type.MINRES)
+solver2.setType(PETSc.KSP.Type.PREONLY)
 pc2 = solver2.getPC()
-pc2.setType(PETSc.PC.Type.HYPRE)
-pc2.setHYPREType("boomeramg")
+pc2.setType(PETSc.PC.Type.CHOLESKY)       # SPD matrix → Cholesky is cheaper
+pc2.setFactorSolverType("mumps")
+solver2.setUp()
 
-# Solver for step 3
+# ── Solver 3: Velocity correction (mass matrix, SPD) ─────────────────────────
 solver3 = PETSc.KSP().create(mesh.comm)
 solver3.setOperators(A3)
-solver3.setType(PETSc.KSP.Type.CG)
+solver3.setType(PETSc.KSP.Type.PREONLY)
 pc3 = solver3.getPC()
-pc3.setType(PETSc.PC.Type.SOR)
+pc3.setType(PETSc.PC.Type.CHOLESKY)       # mass matrix is SPD
+pc3.setFactorSolverType("mumps")
+solver3.setUp()
+
+# Iterative solvers:
+# # Solver for step 1
+# solver1 = PETSc.KSP().create(mesh.comm)
+# solver1.setOperators(A1)
+# solver1.setType(PETSc.KSP.Type.BCGS)
+# pc1 = solver1.getPC()
+# pc1.setType(PETSc.PC.Type.JACOBI)
+
+# # Solver for step 2
+# solver2 = PETSc.KSP().create(mesh.comm)
+# solver2.setOperators(A2)
+# solver2.setType(PETSc.KSP.Type.MINRES)
+# pc2 = solver2.getPC()
+# pc2.setType(PETSc.PC.Type.HYPRE)
+# pc2.setHYPREType("boomeramg")
+
+# # Solver for step 3
+# solver3 = PETSc.KSP().create(mesh.comm)
+# solver3.setOperators(A3)
+# solver3.setType(PETSc.KSP.Type.CG)
+# pc3 = solver3.getPC()
+# pc3.setType(PETSc.PC.Type.SOR)
 
 n = -FacetNormal(mesh)  # Normal pointing out of obstacle
 dObs = Measure("ds", domain=mesh, subdomain_data=ft, subdomain_id=obstacle_marker)
