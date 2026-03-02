@@ -16,11 +16,7 @@ https://jsdokken.com/dolfinx-tutorial/chapter2/ns_code2.html
 # Generate the mesh
 if __name__ == "__main__":
     #output directory to save results
-<<<<<<< HEAD
-    output_dir = "fluid/results_cylinder_channel"
-=======
     output_dir = "fluid/results_cylinder_channel_getfem_quad_fenics_new_mesh_mumps"
->>>>>>> d4122feab1d857fd376af0792dc3d0e34c28fb98
     os.makedirs(output_dir, exist_ok=True)
 
     ##########
