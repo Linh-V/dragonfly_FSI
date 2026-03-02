@@ -1,0 +1,138 @@
+FSI-2 Benchmark — Single Mesh Dynamic (Global Variables, Biharmonic)
+Run date: 2026-02-18 10:42:14
+
+============================================================
+Problem Parameters (FSI-I Benchmark)
+============================================================
+  Channel:   L = 2.5, H = 0.41
+  Cylinder:  center = (0.2, 0.2), r = 0.05
+  Beam:      L = 0.35, W = 0.02
+  Fluid:     rho = 1000.0, nu = 0.001
+  Solid:     rho = 1000.0, E = 1400000.0, nu = 0.4
+             mu_s = 500000.0, lambda_s = 2000000.0000000007
+  Inlet:     U_mean = 0.2
+  Re = 54.7
+
+  Time stepping:
+    dt = 0.1, num_steps = 50, T = 5.0
+    theta = 1
+    Ramp duration = 1.0 s
+
+  Mesh motion: BIHARMONIC
+    alpha_mesh = 0.01
+    delta (kinematic penalty) = 10000000.0
+
+============================================================
+Mesh Information
+============================================================
+  Total points:      893
+  Total convexes:    824
+  Fluid convexes:    790
+  Beam convexes:     34
+  Fluid outer faces: 172
+  Beam outer faces:  38
+
+============================================================
+Degrees of Freedom
+============================================================
+  Displacement  (u):  6868
+  Velocity      (v):  6868
+  Pressure      (p):  876
+  Biharmonic    (w):  6664
+  ─────────────────────────────────
+  Total DOFs:          21276
+
+============================================================
+FEM Information
+============================================================
+  Velocity/Displacement FEM: FEM_QK(2,2) (Q2)
+  Pressure FEM:              FEM_QK(2,1) (Q1)
+  Biharmonic w FEM:          FEM_QK(2,2) (Q2)
+  Integration:               IM_QUAD(5)
+
+============================================================
+Starting FSI-2 Dynamic Analysis (Global Variables, Biharmonic)
+============================================================
+
+Step 1/50, t = 0.1000 s (ramp = 0.0245)
+  Newton iters: 8, converged: 1
+  u_x(A) = -1.76045167e-06,  u_y(A) = -1.11816535e-06
+  F_D = 1.965091,  F_L = -0.003159,  dP = 113.794857
+  max|u| = 1.834700e-06
+  max|v| = 8.325868e-03
+  max|w| = 3.887818e-02
+
+Step 11/50, t = 1.1000 s (ramp = 1.0000)
+  Newton iters: 4, converged: 1
+  u_x(A) = 2.56120961e-05,  u_y(A) = 3.84540519e-04
+  F_D = 14.418721,  F_L = 0.586499,  dP = 148.462098
+  max|u| = 3.868911e-04
+  max|v| = 3.963390e-01
+  max|w| = 2.658704e-01
+
+Step 21/50, t = 2.1000 s (ramp = 1.0000)
+  Newton iters: 2, converged: 1
+  u_x(A) = 2.30467714e-05,  u_y(A) = 8.15221516e-04
+  F_D = 14.161814,  F_L = 0.760550,  dP = 145.265372
+  max|u| = 8.214617e-04
+  max|v| = 3.988330e-01
+  max|w| = 5.784548e-01
+
+Step 31/50, t = 3.1000 s (ramp = 1.0000)
+  Newton iters: 2, converged: 1
+  u_x(A) = 2.30455783e-05,  u_y(A) = 8.15462866e-04
+  F_D = 14.161808,  F_L = 0.760672,  dP = 145.272768
+  max|u| = 8.217052e-04
+  max|v| = 3.988334e-01
+  max|w| = 5.786296e-01
+
+Step 41/50, t = 4.1000 s (ramp = 1.0000)
+  Newton iters: 1, converged: 1
+  u_x(A) = 2.30455770e-05,  u_y(A) = 8.15463346e-04
+  F_D = 14.161808,  F_L = 0.760673,  dP = 145.272768
+  max|u| = 8.217057e-04
+  max|v| = 3.988334e-01
+  max|w| = 5.786299e-01
+
+Step 50/50, t = 5.0000 s (ramp = 1.0000)
+  Newton iters: 1, converged: 1
+  u_x(A) = 2.30455770e-05,  u_y(A) = 8.15463348e-04
+  F_D = 14.161808,  F_L = 0.760673,  dP = 145.272768
+  max|u| = 8.217057e-04
+  max|v| = 3.988334e-01
+  max|w| = 5.786299e-01
+
+============================================================
+FSI-2 Benchmark Final Results (Oscillatory Regime)
+============================================================
+Analysis window: t = [0.0, 5.0] s
+
+Displacement at A = (0.6, 0.2):
+  u_x(A) = 1.359961e-05 ± 1.735860e-05
+  u_y(A) = 3.153253e-04 ± 5.001380e-04
+
+Forces:
+  F_D (drag) = 12.1761 ± 10.2110
+  F_L (lift) = 0.3717 ± 0.3889
+
+Frequency (from u_y): nan Hz
+
+============================================================
+Reference Values (Turek & Hron, FSI-2)
+============================================================
+  u_x(A) = -14.58 ± 12.44 × 10^-3
+           (computed: 1.3600e-05 ± 1.7359e-05)
+  u_y(A) = 1.23 ± 80.6 × 10^-3
+           (computed: 3.1533e-04 ± 5.0014e-04)
+  F_D    = 457.3 ± 22.66
+           (computed: 12.18 ± 10.21)
+  F_L    = 2.22 ± 149.78
+           (computed: 0.37 ± 0.39)
+  f(u_y) ≈ 3.8 Hz  (computed: nan Hz)
+
+✓ Results exported to FSI/FSI_I_BENCHMARK/FSI_Benchmark_I_Results_biharmonic/
+✓ Log saved to FSI/FSI_I_BENCHMARK/FSI_Benchmark_I_Results_biharmonic/results_log.txt
+
+============================================================
+Analysis complete!
+============================================================

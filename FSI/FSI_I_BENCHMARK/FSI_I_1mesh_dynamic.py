@@ -12,10 +12,11 @@ gf.util_warning_level(1)
 #   Dynamic Fluid-Structure Interaction
 #   Single-mesh monolithic ALE formulation
 #   Biharmonic mesh motion
+#   Global variables (turtleFSI style)
 #   FSI-2 Benchmark (Turek & Hron)
 ##########################################
 
-output_dir = "FSI/FSI_II_BENCHMARK/FSI_Benchmark_II_Results_biharmonic"
+output_dir = "FSI/FSI_I_BENCHMARK/FSI_Benchmark_I_Results_biharmonic"
 os.makedirs(output_dir, exist_ok=True)
 
 # Open log file
@@ -27,7 +28,7 @@ def log(msg=""):
     log_file.write(msg + "\n")
     log_file.flush()
 
-log(f"FSI-2 Benchmark — Single Mesh Dynamic (Biharmonic Mesh Motion)")
+log(f"FSI-2 Benchmark — Single Mesh Dynamic (Global Variables, Biharmonic)")
 log(f"Run date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 log("")
 
@@ -48,30 +49,34 @@ W_beam = 0.02
 ν_fluid = 0.001
 rho_fluid = 1000.0
 
-# ===== FSI-2: Structural properties (changed from FSI-1) =====
-rho_solid = 10000.0         # FSI-2: 10x denser than fluid (was 1000 in FSI-1)
+# FSI-2: Structural properties
+rho_solid = 1000.0
 nu_solid = 0.4
-mu_solid = 0.5e6            # Same as FSI-1
+mu_solid = 0.5e6
 E = 2 * mu_solid * (1 + nu_solid)
 lambda_solid = E * nu_solid / ((1 + nu_solid) * (1 - 2 * nu_solid))
 
-# ===== FSI-2: Inlet velocity (changed from FSI-1) =====
-U_mean = 1.0                # FSI-2: 5x higher than FSI-1 (was 0.2)
+# FSI-2: Inlet velocity
+U_mean = 0.2
 
-# ===== FSI-2: Real transient time stepping =====
-dt = 0.001                  # Small time step for accuracy
-theta = 0.5 + dt            # Slightly implicit (Crank-Nicolson + stabilization)
-num_steps = 15000           # 15 seconds total
+# Time stepping
+dt = 0.1
+dt_2 = 1
+theta = 1
+num_steps = 50
 T = num_steps * dt
 
-# Biharmonic mesh stiffness parameter
-alpha_mesh = 1.0            # Scaling parameter for biharmonic operator
+# Biharmonic mesh stiffness
+alpha_mesh = 0.01
+
+# Penalty for kinematic relation (turtleFSI uses 1e7)
+delta = 1.0e7
 
 # Ramp duration
-t_ramp = 2.0               # Smooth ramp-up over 2 seconds
+t_ramp = 1.0
 
 log("=" * 60)
-log("Problem Parameters (FSI-2 Benchmark)")
+log("Problem Parameters (FSI-I Benchmark)")
 log("=" * 60)
 log(f"  Channel:   L = {L}, H = {H}")
 log(f"  Cylinder:  center = ({c_x}, {c_y}), r = {r}")
@@ -82,13 +87,14 @@ log(f"             mu_s = {mu_solid}, lambda_s = {lambda_solid}")
 log(f"  Inlet:     U_mean = {U_mean}")
 log(f"  Re = {2 * rho_fluid * U_mean * H / (3 * rho_fluid * ν_fluid):.1f}")
 log("")
-log("  Time stepping (real transient):")
+log("  Time stepping:")
 log(f"    dt = {dt}, num_steps = {num_steps}, T = {T}")
 log(f"    theta = {theta}")
 log(f"    Ramp duration = {t_ramp} s")
 log("")
-log("  Mesh motion: BIHARMONIC (split into two 2nd-order equations)")
+log("  Mesh motion: BIHARMONIC")
 log(f"    alpha_mesh = {alpha_mesh}")
+log(f"    delta (kinematic penalty) = {delta}")
 log("")
 
 #############
@@ -166,7 +172,7 @@ Mesh.region_merge(INLET, 14)
 Mesh.region_merge(INLET, 15)
 Mesh.region_merge(INLET, 16)
 
-# One-sided interface regions
+# One-sided interface regions (for force computation only)
 BEAM_INTERFACE_FLUID = 209
 BEAM_INTERFACE_SOLID = 210
 
@@ -200,42 +206,24 @@ log("")
 #  INTEGRATION METHOD
 ########################
 
-mim = gf.MeshIm(Mesh, gf.Integ("IM_QUAD(5)"))
+mim = gf.MeshIm(Mesh, gf.Integ("IM_QUAD(9)"))
 
 #########################
 #    FEM ELEMENTS
 #########################
 
-mfu_fluid = gf.MeshFem(Mesh, 2)
-mfu_fluid.set_fem(gf.Fem('FEM_QK(2,2)'))
+# All defined on the WHOLE mesh (global variables)
+mfu = gf.MeshFem(Mesh, 2)
+mfu.set_fem(gf.Fem('FEM_QK(2,2)'))
 
-mfv_fluid = gf.MeshFem(Mesh, 2)
-mfv_fluid.set_fem(gf.Fem('FEM_QK(2,2)'))
+mfv = gf.MeshFem(Mesh, 2)
+mfv.set_fem(gf.Fem('FEM_QK(2,2)'))
 
-mfp_fluid = gf.MeshFem(Mesh, 1)
-mfp_fluid.set_fem(gf.Fem('FEM_QK(2,1)'))
+mfp = gf.MeshFem(Mesh, 1)
+mfp.set_fem(gf.Fem('FEM_QK(2,1)'))
 
-mfu_solid = gf.MeshFem(Mesh, 2)
-mfu_solid.set_fem(gf.Fem('FEM_QK(2,2)'))
-
-mfv_solid = gf.MeshFem(Mesh, 2)
-mfv_solid.set_fem(gf.Fem('FEM_QK(2,2)'))
-
-# ===== NEW: Auxiliary MeshFem for biharmonic variable w_f =====
-mfw_fluid = gf.MeshFem(Mesh, 2)
-mfw_fluid.set_fem(gf.Fem('FEM_QK(2,2)'))
-
-# Verify normals
-n_fluid_side = gf.asm_generic(mim, 0, "Normal", BEAM_INTERFACE_FLUID)
-n_solid_side = gf.asm_generic(mim, 0, "Normal", BEAM_INTERFACE_SOLID)
-
-log("=" * 60)
-log("Normal Verification")
-log("=" * 60)
-log(f"  Fluid-side normal integral: {n_fluid_side}")
-log(f"  Solid-side normal integral: {n_solid_side}")
-log(f"  Sum (should be ~0):         {n_fluid_side + n_solid_side}")
-log("")
+mfw = gf.MeshFem(Mesh, 2)
+mfw.set_fem(gf.Fem('FEM_QK(2,2)'))
 
 ###########
 #  MODEL
@@ -247,28 +235,15 @@ md = gf.Model("real")
 #  FEM VARIABLES
 ###################
 
-# Current time step unknowns
-md.add_filtered_fem_variable("u_f", mfu_fluid, FLUID)
-md.add_filtered_fem_variable("v_f", mfv_fluid, FLUID)
-md.add_filtered_fem_variable("p_f", mfp_fluid, FLUID)
-md.add_filtered_fem_variable("u_s", mfu_solid, BEAM)
-md.add_filtered_fem_variable("v_s", mfv_solid, BEAM)
+# Global variables (NOT filtered, except pressure)
+md.add_fem_variable("u", mfu)                      # displacement everywhere
+md.add_fem_variable("v", mfv)                      # velocity everywhere
+md.add_filtered_fem_variable("p", mfp, FLUID)      # pressure (fluid only)
+md.add_filtered_fem_variable("w", mfw, FLUID)             # biharmonic auxiliary
 
-# ===== NEW: Biharmonic auxiliary variable w_f (filtered to fluid) =====
-md.add_filtered_fem_variable("w_f", mfw_fluid, FLUID)
-
-# Previous time step data (full MeshFem, set via interpolation)
-md.add_fem_data("u_f_n", mfu_fluid)
-md.add_fem_data("v_f_n", mfv_fluid)
-md.add_fem_data("u_s_n", mfu_solid)
-md.add_fem_data("v_s_n", mfv_solid)
-
-# ===== NEW: Previous time step data for w_f =====
-md.add_fem_data("w_f_n", mfw_fluid)
-
-# Lagrange multipliers for interface coupling
-md.add_filtered_fem_variable("mult_u", mfu_fluid, BEAM_INTERFACE_FLUID)
-md.add_filtered_fem_variable("mult_v", mfv_fluid, BEAM_INTERFACE_FLUID)
+# Previous time step data
+md.add_fem_data("u_n", mfu)
+md.add_fem_data("v_n", mfv)
 
 ###########################
 #  INITIALIZED CONSTANTS
@@ -284,7 +259,8 @@ md.add_initialized_data("U_mean", U_mean)
 md.add_initialized_data("dt", dt)
 md.add_initialized_data("theta0", theta)
 md.add_initialized_data("theta1", 1.0 - theta)
-md.add_initialized_data("alpha_mesh", alpha_mesh)  # NEW: biharmonic parameter
+md.add_initialized_data("alpha_mesh", alpha_mesh)
+md.add_initialized_data("delta", delta)
 
 #################################################
 #            WEAK FORMULATION
@@ -302,45 +278,46 @@ md.add_macro('sigma_f_vu(v,u)',
 md.add_macro('sigma_f_p(p)', "-p*Id(2)")
 
 # SOLID STRESS TENSORS
-md.add_macro("E(u)", "0.5*((F(u))'*F(u) - Id(2))")
-md.add_macro('Sigma_s(u)', "2*mu_s*E(u) + lambda_solid*Trace(E(u))*Id(2)")
+md.add_macro("E_GL(u)", "0.5*((F(u))'*F(u) - Id(2))")
+md.add_macro('Sigma_s(u)', "2*mu_s*E_GL(u) + lambda_solid*Trace(E_GL(u))*Id(2)")
 md.add_macro("PK1(u)", "F(u)*Sigma_s(u)")
 
-# CORRECTIVE TERM
+# CORRECTIVE TERM (do-nothing)
 md.add_macro("g_f(v,u)", "-rho_f*nu_f*( Inv(F(u))'*(Grad(v))' )")
 
 ######################
 #  FLUID EQUATIONS
+#  Integrated over FLUID, tested by Test_v, Test_p
 ######################
 
 # ==========================================
 # A_T: TIME TERMS
 # ==========================================
-# Fluid temporal: (1/k) * J^{n,theta} * rho_f * (v_f - v_f_n) · psi^v
+# Temporal: (1/k) * J^{n,theta} * rho_f * (v - v_n) · Test_v
 md.add_nonlinear_term(mim,
-    "theta0*(rho_f/dt)*J(u_f)*(v_f - v_f_n).Test_v_f",
+    "theta0*(rho_f/dt)*J(u)*(v - v_n).Test_v",
     FLUID)
 md.add_nonlinear_term(mim,
-    "theta1*(rho_f/dt)*J(u_f_n)*(v_f - v_f_n).Test_v_f",
+    "theta1*(rho_f/dt)*J(u_n)*(v - v_n).Test_v",
     FLUID)
 
 # ALE correction
 md.add_nonlinear_term(mim,
-    "-(rho_f/dt)*J(u_f)*(Grad(v_f).Inv(F(u_f))*(u_f - u_f_n)).Test_v_f",
+    "-(rho_f/dt)*J(u)*(Grad(v)*Inv(F(u))*(u - u_n)).Test_v",
     FLUID)
 
 # ==========================================
 # A_P: PRESSURE — FULLY IMPLICIT
 # ==========================================
 md.add_nonlinear_term(mim,
-    "(J(u_f)*sigma_f_p(p_f)*(Inv(F(u_f)))'):Grad_Test_v_f",
+    "(J(u)*sigma_f_p(p)*(Inv(F(u)))'):Grad_Test_v",
     FLUID)
 
 # ==========================================
 # A_I: INCOMPRESSIBILITY — FULLY IMPLICIT
 # ==========================================
 md.add_nonlinear_term(mim,
-    "J(u_f)*Trace(Grad(v_f)*Inv(F(u_f)))*Test_p_f",
+    "J(u)*Trace(Grad(v)*Inv(F(u)))*Test_p",
     FLUID)
 
 # ==========================================
@@ -348,226 +325,170 @@ md.add_nonlinear_term(mim,
 # ==========================================
 # Convection at n
 md.add_nonlinear_term(mim,
-    "theta0*rho_f*J(u_f)*(Grad(v_f).(Inv(F(u_f))*v_f)).Test_v_f",
+    "theta0*rho_f*J(u)*(Grad(v)*(Inv(F(u))*v)).Test_v",
     FLUID)
 
 # Viscous stress at n
 md.add_nonlinear_term(mim,
-    "theta0*(J(u_f)*sigma_f_vu(v_f, u_f)*(Inv(F(u_f)))'):Grad_Test_v_f",
+    "theta0*(J(u)*sigma_f_vu(v, u)*(Inv(F(u)))'):Grad_Test_v",
     FLUID)
 
 # Do-nothing at n
 md.add_nonlinear_term(mim,
-    "-theta0*(g_f(v_f, u_f)*Normal).Test_v_f",
+    "-theta0*(g_f(v, u)*Normal).Test_v",
     OUTLET)
 
 # ==========================================
-# -(1-theta) * A_E(U^{n-1}): TERMS AT TIME n-1 (source)
+# -(1-theta) * A_E(U^{n-1}): SOURCE TERMS
 # ==========================================
 # Convection at n-1
 md.add_source_term(mim,
-    "-theta1*rho_f*J(u_f_n)*(Grad(v_f_n).(Inv(F(u_f_n))*v_f_n)).Test_v_f",
+    "-theta1*rho_f*J(u_n)*(Grad(v_n)*(Inv(F(u_n))*v_n)).Test_v",
     FLUID)
 
 # Viscous stress at n-1
 md.add_source_term(mim,
-    "-theta1*(J(u_f_n)*sigma_f_vu(v_f_n, u_f_n)*(Inv(F(u_f_n)))'):Grad_Test_v_f",
+    "-theta1*(J(u_n)*sigma_f_vu(v_n, u_n)*(Inv(F(u_n)))'):Grad_Test_v",
     FLUID)
 
 # Do-nothing at n-1
 md.add_source_term(mim,
-    "theta1*(g_f(v_f_n, u_f_n)*Normal).Test_v_f",
+    "theta1*(g_f(v_n, u_n)*Normal).Test_v",
     OUTLET)
 
 # ==========================================
-# BIHARMONIC MESH MOTION (replaces Laplacian)
+# BIHARMONIC MESH MOTION (turtleFSI convention)
+# alpha * laplace^2(u) = 0 in FLUID
+#
+# Split:
+#   Eq 1:  alpha*w - alpha*laplace(u) = 0   tested by Test_w
+#   Eq 2:  alpha*laplace(w) = 0              tested by Test_u
+#
+# NO theta scheme — spatial constraint at each time step
 # ==========================================
-# The biharmonic equation alpha * laplace^2(u_f) = 0
-# is split into two second-order equations:
-#
-#   Eq 1 (tested with Test_u_f):
-#       alpha * w_f · Test_u_f - alpha * Grad(u_f) : Grad(Test_u_f) = 0
-#
-#   Eq 2 (tested with Test_w_f):
-#       alpha * Grad(w_f) : Grad(Test_w_f) = 0
-#
-# With theta-scheme time discretization:
 
-# --- Equation 1: w_f definition (tested with Test_u_f) ---
-# theta * terms at n
+# --- Eq 1: w-definition (tested by Test_w) ---
+#   Weak: alpha*w·Test_w - alpha*Grad(u):Grad(Test_w) = 0
 md.add_nonlinear_term(mim,
-    "theta0*alpha_mesh*w_f.Test_u_f",
+    "alpha_mesh*w.Test_w",
     FLUID)
 md.add_nonlinear_term(mim,
-    "-theta0*alpha_mesh*Grad(u_f):Grad_Test_u_f",
+    "-alpha_mesh*Grad(u):Grad_Test_w",
     FLUID)
 
-# (1-theta) * terms at n-1 (source / RHS)
-md.add_source_term(mim,
-    "-theta1*alpha_mesh*w_f_n.Test_u_f",
-    FLUID)
-md.add_source_term(mim,
-    "theta1*alpha_mesh*Grad(u_f_n):Grad_Test_u_f",
-    FLUID)
-
-# --- Equation 2: Laplace(w_f) = 0 (tested with Test_w_f) ---
-# theta * terms at n
+# --- Eq 2: mesh constraint (tested by Test_u) ---
+#   Weak: alpha*Grad(w):Grad(Test_u) = 0
 md.add_nonlinear_term(mim,
-    "theta0*alpha_mesh*Grad(w_f):Grad_Test_w_f",
-    FLUID)
-
-# (1-theta) * terms at n-1 (source / RHS)
-md.add_source_term(mim,
-    "-theta1*alpha_mesh*Grad(w_f_n):Grad_Test_w_f",
+    "alpha_mesh*Grad(w):Grad_Test_u",
     FLUID)
 
 #####################
 #  SOLID EQUATIONS
+#  Integrated over BEAM, tested by Test_v, Test_u
 #####################
 
 # ==========================================
-# A_T: TIME TERMS
+# MOMENTUM (tested by Test_v)
 # ==========================================
-# Solid inertia
+# Inertia
 md.add_nonlinear_term(mim,
-    "(rho_s/dt)*(v_s - v_s_n).Test_v_s",
-    BEAM)
-
-# Kinematic relation
-md.add_nonlinear_term(mim,
-    "(rho_s/dt)*(u_s - u_s_n).Test_u_s",
-    BEAM)
-
-# ==========================================
-# theta * A_E(U^n): TERMS AT TIME n
-# ==========================================
-# Kinematic relation at n
-md.add_nonlinear_term(mim,
-    "-theta0*rho_s*v_s.Test_u_s",
+    "(rho_s/dt)*(v - v_n).Test_v",
     BEAM)
 
 # Solid stress at n
 md.add_nonlinear_term(mim,
-    "theta0*(PK1(u_s)):Grad_Test_v_s",
+    "theta0*(PK1(u)):Grad_Test_v",
+    BEAM)
+
+# Solid stress at n-1 (source)
+md.add_source_term(mim,
+    "-theta1*(PK1(u_n)):Grad_Test_v",
     BEAM)
 
 # ==========================================
-# -(1-theta) * A_E(U^{n-1}): source terms
+# KINEMATIC RELATION: du/dt = v
+# (tested by Test_u, with PENALTY delta)
+# This is the KEY ingredient from turtleFSI
 # ==========================================
-# Kinematic relation at n-1
-md.add_source_term(mim,
-    "(theta1*rho_s*v_s_n).Test_u_s",
+
+# (delta * rho_s / dt) * (u - u_n) · Test_u
+md.add_nonlinear_term(mim,
+    "delta*rho_s*(1/dt)*(u - u_n).Test_u",
     BEAM)
 
-# Solid stress at n-1
-md.add_source_term(mim,
-    "-theta1*(PK1(u_s_n)):Grad_Test_v_s",
+# -delta * rho_s * theta * v · Test_u
+md.add_nonlinear_term(mim,
+    "-delta*rho_s*theta0*v.Test_u",
     BEAM)
 
-#########################
-#  COUPLING CONDITIONS
-#########################
+# delta * rho_s * (1-theta) * v_n · Test_u (source)
+md.add_source_term(mim,
+    "delta*rho_s*theta1*v_n.Test_u",
+    BEAM)
 
-# Kinematic coupling: u_f = u_s on interface
-md.add_nonlinear_term(mim,
-    "(u_f - u_s).Test_mult_u",
-    BEAM_INTERFACE_FLUID)
-md.add_nonlinear_term(mim,
-    "mult_u.Test_u_f",
-    BEAM_INTERFACE_FLUID)
-
-# Kinematic coupling: v_f = v_s on interface
-md.add_nonlinear_term(mim,
-    "(v_f - v_s).Test_mult_v",
-    BEAM_INTERFACE_FLUID)
-md.add_nonlinear_term(mim,
-    "mult_v.Test_v_f",
-    BEAM_INTERFACE_FLUID)
-
-# Dynamic coupling: fluid traction on solid
-md.add_nonlinear_term(mim,
-    "((J(u_f)*(sigma_f_p(p_f) + sigma_f_vu(v_f, u_f))"
-    "*(Inv(F(u_f)))')*Normal).Test_v_s",
-    BEAM_INTERFACE_FLUID)
-
-# Dynamic coupling: solid traction on fluid
-md.add_nonlinear_term(mim,
-    "-((PK1(u_s))*Normal).Test_v_f",
-    BEAM_INTERFACE_SOLID)
+# ==========================================
+# NO INTERFACE COUPLING TERMS NEEDED
+# Coupling is AUTOMATIC through shared
+# global variables and shared test functions
+# ==========================================
 
 #########################
 #  BOUNDARY CONDITIONS
 #########################
 
-# INLET: Parabolic velocity profile
-V_inlet = md.interpolation("[0,0]", mfv_fluid)
-md.add_initialized_fem_data('V_inlet', mfv_fluid, V_inlet)
+# ---- Velocity BCs ----
+V_inlet = md.interpolation("[0,0]", mfv)
+md.add_initialized_fem_data('V_inlet', mfv, V_inlet)
 
-md.add_Dirichlet_condition_with_multipliers(mim, "v_f", mfv_fluid, INLET, "V_inlet")
-md.add_Dirichlet_condition_with_multipliers(mim, "v_f", mfv_fluid, WALLS)
-md.add_Dirichlet_condition_with_multipliers(mim, "v_f", mfv_fluid, CYLINDER)
+md.add_Dirichlet_condition_with_multipliers(mim, "v", mfv, INLET, "V_inlet")
+md.add_Dirichlet_condition_with_multipliers(mim, "v", mfv, WALLS)
+md.add_Dirichlet_condition_with_multipliers(mim, "v", mfv, CYLINDER)
 
-# Mesh displacement BCs (u_f = 0 on all external boundaries)
-md.add_Dirichlet_condition_with_multipliers(mim, "u_f", mfu_fluid, WALLS)
-md.add_Dirichlet_condition_with_multipliers(mim, "u_f", mfu_fluid, CYLINDER)
-md.add_Dirichlet_condition_with_multipliers(mim, "u_f", mfu_fluid, INLET)
-md.add_Dirichlet_condition_with_multipliers(mim, "u_f", mfu_fluid, OUTLET)
+# ---- Displacement BCs (u = 0 on all external fluid boundaries) ----
+md.add_Dirichlet_condition_with_multipliers(mim, "u", mfu, WALLS)
+md.add_Dirichlet_condition_with_multipliers(mim, "u", mfu, CYLINDER)
+md.add_Dirichlet_condition_with_multipliers(mim, "u", mfu, INLET)
+md.add_Dirichlet_condition_with_multipliers(mim, "u", mfu, OUTLET)
 
-# ===== NEW: Biharmonic auxiliary variable BCs =====
-# w_f = 0 on all external fluid boundaries
-# This enforces d(grad(u_f))/dn = 0 in effect (smoothness at boundary)
-md.add_Dirichlet_condition_with_multipliers(mim, "w_f", mfw_fluid, WALLS)
-md.add_Dirichlet_condition_with_multipliers(mim, "w_f", mfw_fluid, CYLINDER)
-md.add_Dirichlet_condition_with_multipliers(mim, "w_f", mfw_fluid, INLET)
-md.add_Dirichlet_condition_with_multipliers(mim, "w_f", mfw_fluid, OUTLET)
+# ---- Biharmonic auxiliary BCs (w = 0 on all external fluid boundaries) ----
+md.add_Dirichlet_condition_with_multipliers(mim, "w", mfw, WALLS)
+md.add_Dirichlet_condition_with_multipliers(mim, "w", mfw, CYLINDER)
+md.add_Dirichlet_condition_with_multipliers(mim, "w", mfw, INLET)
+md.add_Dirichlet_condition_with_multipliers(mim, "w", mfw, OUTLET)
 
-# Solid BCs
-md.add_Dirichlet_condition_with_multipliers(mim, "u_s", mfu_solid, BEAM_LEFT)
-md.add_Dirichlet_condition_with_multipliers(mim, "v_s", mfv_solid, BEAM_LEFT)
+# ---- Solid: fixed left boundary ----
+md.add_Dirichlet_condition_with_multipliers(mim, "u", mfu, BEAM_LEFT)
+md.add_Dirichlet_condition_with_multipliers(mim, "v", mfv, BEAM_LEFT)
 
 #########################
 #  INITIAL CONDITIONS
 #########################
 
-u_f_init = md.interpolation("[0,0]", mfu_fluid)
-v_f_init = md.interpolation("[0,0]", mfv_fluid)
-u_s_init = md.interpolation("[0,0]", mfu_solid)
-v_s_init = md.interpolation("[0,0]", mfv_solid)
-w_f_init = md.interpolation("[0,0]", mfw_fluid)  # NEW
+u_init = md.interpolation("[0,0]", mfu)
+v_init = md.interpolation("[0,0]", mfv)
 
-md.set_variable("u_f_n", u_f_init)
-md.set_variable("v_f_n", v_f_init)
-md.set_variable("u_s_n", u_s_init)
-md.set_variable("v_s_n", v_s_init)
-md.set_variable("w_f_n", w_f_init)  # NEW
+md.set_variable("u_n", u_init)
+md.set_variable("v_n", v_init)
 
 ####################
 #   DOF SUMMARY
 ####################
 
-n_uf = len(md.variable("u_f"))
-n_vf = len(md.variable("v_f"))
-n_pf = len(md.variable("p_f"))
-n_us = len(md.variable("u_s"))
-n_vs = len(md.variable("v_s"))
-n_wf = len(md.variable("w_f"))       # NEW
-n_mult_u = len(md.variable("mult_u"))
-n_mult_v = len(md.variable("mult_v"))
-total_dofs = n_uf + n_vf + n_pf + n_us + n_vs + n_wf + n_mult_u + n_mult_v
+n_u = len(md.variable("u"))
+n_v = len(md.variable("v"))
+n_p = len(md.variable("p"))
+n_w = len(md.variable("w"))
+total_dofs = n_u + n_v + n_p + n_w
 
 log("=" * 60)
-log("Degrees of Freedom (Filtered)")
+log("Degrees of Freedom")
 log("=" * 60)
-log(f"  Fluid mesh displacement (u_f):  {n_uf}")
-log(f"  Fluid velocity          (v_f):  {n_vf}")
-log(f"  Pressure                (p_f):  {n_pf}")
-log(f"  Biharmonic auxiliary    (w_f):  {n_wf}")   # NEW
-log(f"  Solid displacement      (u_s):  {n_us}")
-log(f"  Solid velocity          (v_s):  {n_vs}")
-log(f"  Multiplier u          (mu_u):   {n_mult_u}")
-log(f"  Multiplier v          (mu_v):   {n_mult_v}")
+log(f"  Displacement  (u):  {n_u}")
+log(f"  Velocity      (v):  {n_v}")
+log(f"  Pressure      (p):  {n_p}")
+log(f"  Biharmonic    (w):  {n_w}")
 log(f"  ─────────────────────────────────")
-log(f"  Total DOFs:                      {total_dofs}")
+log(f"  Total DOFs:          {total_dofs}")
 log("")
 
 log("=" * 60)
@@ -575,7 +496,7 @@ log("FEM Information")
 log("=" * 60)
 log(f"  Velocity/Displacement FEM: FEM_QK(2,2) (Q2)")
 log(f"  Pressure FEM:              FEM_QK(2,1) (Q1)")
-log(f"  Biharmonic w_f FEM:        FEM_QK(2,2) (Q2)")   # NEW
+log(f"  Biharmonic w FEM:          FEM_QK(2,2) (Q2)")
 log(f"  Integration:               IM_QUAD(5)")
 log("")
 
@@ -594,9 +515,9 @@ p_diff_history = []
 
 # Force computation model
 md_force = gf.Model("real")
-md_force.add_fem_data("u_force", mfu_fluid)
-md_force.add_fem_data("v_force", mfv_fluid)
-md_force.add_fem_data("p_force", mfp_fluid)
+md_force.add_fem_data("u_force", mfu)
+md_force.add_fem_data("v_force", mfv)
+md_force.add_fem_data("p_force", mfp)
 md_force.add_initialized_data("nu_f", ν_fluid)
 md_force.add_initialized_data("rho_f", rho_fluid)
 
@@ -614,14 +535,14 @@ p_back_point  = np.array([[0.25], [0.2]])
 ####################
 
 log("=" * 60)
-log("Starting FSI-2 Dynamic Analysis (Biharmonic Mesh Motion)")
+log("Starting FSI-2 Dynamic Analysis (Global Variables, Biharmonic)")
 log("=" * 60)
 
-export_every = 100        # Export VTU every 100 steps (0.1 s)
-log_every = 10            # Log to console every 10 steps
-save_history_every = 1    # Save history arrays every step
-
+export_every = 10
+log_every = 10
 progress = tqdm(desc="FSI-2 time stepping", total=num_steps)
+
+
 
 for step in range(num_steps):
     progress.update(1)
@@ -633,63 +554,44 @@ for step in range(num_steps):
         ramp = 0.5 * (1.0 - np.cos(π * t / t_ramp))
     else:
         ramp = 1.0
+    if t == t_ramp:
+        md.set_variable('dt', dt_2)
+        
 
     V_inlet_expr = f"{ramp}*[4*1.5*U_mean*X(2)*(H-X(2))/(H*H), 0]"
-    V_inlet = md.interpolation(V_inlet_expr, mfv_fluid)
+    V_inlet = md.interpolation(V_inlet_expr, mfv)
     md.set_variable('V_inlet', V_inlet)
 
     # ---- Solve ----
-    try:
-        nbit, converged = md.solve("noisy",
-                                    "max_iter", 200,
-                                    "max_res", 1e-8,
-                                    "lsolver", "mumps",
-                                    "lsearch", "simplest")
-    except Exception as e:
-        log(f"  WARNING at step {step+1} (t={t:.4f}): {e}")
-        log(f"  Trying with relaxed tolerance...")
-        try:
-            nbit, converged = md.solve("noisy",
-                                        "max_iter", 500,
-                                        "max_res", 1e-6,
-                                        "lsolver", "mumps",
-                                        "lsearch", "systematic")
-        except Exception as e2:
-            log(f"  FATAL at step {step+1} (t={t:.4f}): {e2}")
-            break
+    nbit, converged = md.solve("noisy",
+                               "max_iter", 300,
+                               "max_res", 1e-8,
+                               "lsolver", "mumps",
+                               "lsearch", "simplest")
 
-    # ---- Extract solution (filtered) ----
-    u_f_filt = md.variable("u_f")
-    v_f_filt = md.variable("v_f")
-    p_f_filt = md.variable("p_f")
-    u_s_filt = md.variable("u_s")
-    v_s_filt = md.variable("v_s")
-    w_f_filt = md.variable("w_f")   # NEW
+    # ---- Extract solution ----
+    u_sol = md.variable("u")
+    v_sol = md.variable("v")
+    p_sol = md.variable("p")
+    w_sol = md.variable("w")
 
-    # ---- Interpolate to full MeshFem ----
-    u_f_full = md.interpolation("u_f", mfu_fluid)
-    v_f_full = md.interpolation("v_f", mfv_fluid)
-    p_f_full = md.interpolation("p_f", mfp_fluid)
-    u_s_full = md.interpolation("u_s", mfu_solid)
-    v_s_full = md.interpolation("v_s", mfv_solid)
-    w_f_full = md.interpolation("w_f", mfw_fluid)   # NEW
+    # ---- Interpolate p to full MeshFem (filtered → full) ----
+    p_full = md.interpolation("p", mfp)
+    w_full = md.interpolation("w", mfw)
 
     # ---- Update previous time step data ----
-    md.set_variable("u_f_n", u_f_full)
-    md.set_variable("v_f_n", v_f_full)
-    md.set_variable("u_s_n", u_s_full)
-    md.set_variable("v_s_n", v_s_full)
-    md.set_variable("w_f_n", w_f_full)   # NEW
+    md.set_variable("u_n", u_sol.copy())
+    md.set_variable("v_n", v_sol.copy())
 
     # ---- Displacement at point A ----
-    result = gf.compute_interpolate_on(mfu_solid, u_s_full, A)
+    result = gf.compute_interpolate_on(mfu, u_sol, A)
     u_Ax = float(result[0])
     u_Ay = float(result[1])
 
     # ---- Drag and lift ----
-    md_force.set_variable("u_force", u_f_full)
-    md_force.set_variable("v_force", v_f_full)
-    md_force.set_variable("p_force", p_f_full)
+    md_force.set_variable("u_force", u_sol)
+    md_force.set_variable("v_force", v_sol)
+    md_force.set_variable("p_force", p_full)
 
     traction_cyl = gf.asm_generic(mim, 0,
         "(J(u_force)"
@@ -707,8 +609,8 @@ for step in range(num_steps):
     F_L = -(traction_cyl[1] + traction_beam[1])
 
     # ---- Pressure difference ----
-    p_front = gf.compute_interpolate_on(mfp_fluid, p_f_full, p_front_point)[0]
-    p_back  = gf.compute_interpolate_on(mfp_fluid, p_f_full, p_back_point)[0]
+    p_front = gf.compute_interpolate_on(mfp, p_full, p_front_point)[0]
+    p_back  = gf.compute_interpolate_on(mfp, p_full, p_back_point)[0]
     p_diff = p_front - p_back
 
     # ---- Store history ----
@@ -719,19 +621,21 @@ for step in range(num_steps):
     lift_history.append(F_L)
     p_diff_history.append(p_diff)
 
-    # ---- Log step results (periodic) ----
+    # ---- Log step results ----
     if step % log_every == 0 or step == num_steps - 1:
         log(f"")
         log(f"Step {step+1}/{num_steps}, t = {t:.4f} s (ramp = {ramp:.4f})")
-        log(f"  Newton iters: {nbit}")
+        log(f"  Newton iters: {nbit}, converged: {converged}")
         log(f"  u_x(A) = {u_Ax:.8e},  u_y(A) = {u_Ay:.8e}")
         log(f"  F_D = {F_D:.6f},  F_L = {F_L:.6f},  dP = {p_diff:.6f}")
-        log(f"  max|u_s| = {np.max(np.abs(u_s_filt)):.6e}")
-        log(f"  max|v_f| = {np.max(np.abs(v_f_filt)):.6e}")
-        log(f"  max|w_f| = {np.max(np.abs(w_f_filt)):.6e}")
+        log(f"  max|u| = {np.max(np.abs(u_sol)):.6e}")
+        log(f"  max|v| = {np.max(np.abs(v_sol)):.6e}")
+        log(f"  max|w| = {np.max(np.abs(w_sol)):.6e}")
 
-    # ---- Save histories periodically ----
-    if step % 100 == 0 or step == num_steps - 1:
+   
+    if step % export_every == 0 or step == num_steps - 1:
+
+         # ---- Save histories periodically ----
         np.savetxt(f"{output_dir}/displacement_history.txt",
                    np.column_stack([time_history, ux_history, uy_history]),
                    header="Time u_x(A) u_y(A)",
@@ -743,18 +647,33 @@ for step in range(num_steps):
                    header="Time F_D F_L Pressure_Diff",
                    fmt='%.10e')
 
-    # ---- Export VTU ----
-    if step % export_every == 0 or step == num_steps - 1:
-        mfv_fluid.export_to_vtu(
-            f"{output_dir}/fluid_{step:06d}.vtu",
-            mfu_fluid, u_f_full, "MeshDisplacement",
-            mfv_fluid, v_f_full, "Velocity",
-            mfp_fluid, p_f_full, "Pressure")
+        # ---- Export VTU ----
+        
+        mfv.export_to_vtu(
+        f"{output_dir}/fluid_and_solid_{step:06d}.vtu",
+        mfu, u_sol, "Displacement",
+        mfv, v_sol, "Velocity",
+        mfp, p_full, "Pressure",
+        mfw, w_full, "w_biharmonic")
 
-        mfu_solid.export_to_vtu(
-            f"{output_dir}/solid_{step:06d}.vtu",
-            mfu_solid, u_s_full, "Displacement",
-            mfv_solid, v_s_full, "Velocity")
+        # ---- Save  restart files ----
+        restart_data = {
+        'model_state': md.from_variables(),
+        'u_n': md.variable("u_n").copy(),
+        'v_n': md.variable("v_n").copy(),
+        'step': step,
+        't': t,
+        'time_history': time_history,
+        'ux_history': ux_history,
+        'uy_history': uy_history,
+        'drag_history': drag_history,
+        'lift_history': lift_history,
+        'p_diff_history': p_diff_history,
+        }
+        np.save(f"{output_dir}/restart_{step:06d}.npy", restart_data, allow_pickle=True)
+
+
+  
 
 progress.close()
 
@@ -762,7 +681,7 @@ progress.close()
 #                        FINAL OUTPUT
 # =========================================================================
 
-# Compute oscillation statistics from last 5 seconds of data
+# Compute oscillation statistics from last 5 seconds
 t_analysis_start = T - 5.0
 analysis_mask = np.array(time_history) >= t_analysis_start
 
@@ -786,7 +705,7 @@ if np.any(analysis_mask):
     uy_centered = uy_osc - uy_mean
     crossings = np.where(np.diff(np.sign(uy_centered)))[0]
     if len(crossings) >= 2:
-        periods = np.diff(t_osc[crossings[::2]])  # full periods
+        periods = np.diff(t_osc[crossings[::2]])
         if len(periods) > 0:
             freq_uy = 1.0 / np.mean(periods)
         else:
@@ -825,18 +744,16 @@ if np.any(analysis_mask):
     log("")
 
 # ---- Final export ----
-mfv_fluid.export_to_vtu(f"{output_dir}/fluid_final.vtu",
-    mfu_fluid, u_f_full, "MeshDisplacement",
-    mfv_fluid, v_f_full, "Velocity",
-    mfp_fluid, p_f_full, "Pressure")
+mfv.export_to_vtu(f"{output_dir}/fluid_final.vtu",
+    mfu, u_sol, "Displacement",
+    mfv, v_sol, "Velocity",
+    mfp, p_full, "Pressure")
 
-mfu_solid.export_to_vtu(f"{output_dir}/solid_final.vtu",
-    mfu_solid, u_s_full, "Displacement",
-    mfv_solid, v_s_full, "Velocity")
+mfu.export_to_vtu(f"{output_dir}/solid_final.vtu",
+    mfu, u_sol, "Displacement",
+    mfv, v_sol, "Velocity")
 
-log(f"✓ Fluid results exported to {output_dir}/fluid_final.vtu")
-log(f"✓ Solid results exported to {output_dir}/solid_final.vtu")
-log(f"✓ Histories saved to {output_dir}/")
+log(f"✓ Results exported to {output_dir}/")
 log(f"✓ Log saved to {output_dir}/results_log.txt")
 log("")
 log("=" * 60)
