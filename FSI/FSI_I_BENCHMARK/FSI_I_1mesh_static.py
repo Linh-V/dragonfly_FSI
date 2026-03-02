@@ -289,31 +289,41 @@ md.add_nonlinear_term(mim,
 #########################
 ## COUPLING CONDITIONS ##
 #########################
+# Kinematic coupling: u_f = u_s on interface
+# constraint
+md.add_nonlinear_term(mim, "(u_f - u_s).Test_mult_u", BEAM_INTERFACE)
+md.add_nonlinear_term(mim, "(v_f - v_s).Test_mult_v", BEAM_INTERFACE)
 
-# Kinematic coupling
-md.add_nonlinear_term(mim,
-    "(u_f - u_s).Test_mult",
-    BEAM_INTERFACE_FLUID)
-md.add_nonlinear_term(mim,
-    "mult.Test_u_f",
-    BEAM_INTERFACE_FLUID)
+# adjoint consistency (reaction on BOTH sides)
+md.add_nonlinear_term(mim, "mult_u.Test_u_f", BEAM_INTERFACE)
+md.add_nonlinear_term(mim, "-mult_u.Test_u_s", BEAM_INTERFACE)
 
-# Verify normals
-n_fluid_side = gf.asm_generic(mim, 0, "Normal", BEAM_INTERFACE_FLUID)
-n_solid_side = gf.asm_generic(mim, 0, "Normal", BEAM_INTERFACE_SOLID)
+md.add_nonlinear_term(mim, "mult_v.Test_v_f", BEAM_INTERFACE)
+md.add_nonlinear_term(mim, "-mult_v.Test_v_s", BEAM_INTERFACE)
+# # Kinematic coupling
+# md.add_nonlinear_term(mim,
+#     "(u_f - u_s).Test_mult",
+#     BEAM_INTERFACE_FLUID)
+# md.add_nonlinear_term(mim,
+#     "mult.Test_u_f",
+#     BEAM_INTERFACE_FLUID)
 
-log("=" * 60)
-log("Normal Verification")
-log("=" * 60)
-log(f"  Fluid-side normal integral: {n_fluid_side}")
-log(f"  Solid-side normal integral: {n_solid_side}")
-log(f"  Sum (should be ~0):         {n_fluid_side + n_solid_side}")
-log("")
+# # Verify normals
+# n_fluid_side = gf.asm_generic(mim, 0, "Normal", BEAM_INTERFACE_FLUID)
+# n_solid_side = gf.asm_generic(mim, 0, "Normal", BEAM_INTERFACE_SOLID)
 
-# Dynamic coupling: fluid traction on solid
-md.add_nonlinear_term(mim,
-    "((J(u_f)*(sigma_f_p(p_f) + sigma_f_vu(v_f, u_f))*(Inv(F(u_f)))')*Normal).Test_u_s",
-    BEAM_INTERFACE_FLUID)
+# log("=" * 60)
+# log("Normal Verification")
+# log("=" * 60)
+# log(f"  Fluid-side normal integral: {n_fluid_side}")
+# log(f"  Solid-side normal integral: {n_solid_side}")
+# log(f"  Sum (should be ~0):         {n_fluid_side + n_solid_side}")
+# log("")
+
+# # Dynamic coupling: fluid traction on solid
+# md.add_nonlinear_term(mim,
+#     "((J(u_f)*(sigma_f_p(p_f) + sigma_f_vu(v_f, u_f))*(Inv(F(u_f)))')*Normal).Test_u_s",
+#     BEAM_INTERFACE_FLUID)
 
 # # Dynamic coupling: solid traction on fluid
 # md.add_nonlinear_term(mim,

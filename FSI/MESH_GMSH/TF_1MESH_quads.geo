@@ -174,16 +174,17 @@ Curve Loop(21) = {28, 24, 25,26};
 Plane Surface(21) = {21};
 
 //TRANSFINITE CURVE DEFINITIONS
-N_mult = 1.2;
-N1 = N_mult*4;
-N2= N_mult*4;
-N3 = N_mult*6;
-N4 = N_mult*6;
+N_mult = 2;
+N1 = N_mult*5;
+N2= N_mult*5;
+N3 = N_mult*8;
+N4 = N_mult*8;
 N5 = N_mult*3;
-N6 = N_mult*10;
+N6 = N_mult*18;
 N7 = N_mult*15;
 pf = 1.1;
-pf_db = 1/1.3;
+pf_db = 1/1.2;
+
 // Block 1
 //+
 Transfinite Curve {16, 29} = N1 Using Progression 1;
@@ -372,5 +373,5 @@ Physical Surface("FLUID", 60) = {1, 2, 3, 4, 5, 6, 7, 8, 13, 12, 16, 17, 18, 14,
 Physical Surface("BEAM", 61) = {20, 21};
 Recombine Surface {1:21};
  Mesh 2;
- Save "TF_1MESH_quads.msh";
+ Save "TF_1MESH_quads_ref2.msh";
  

@@ -43,7 +43,7 @@ L_beam = 0.35
 W_beam = 0.02
 
 # Structural properties
-rho_solid = 1000.0
+rho_solid = 10000.0
 nu_solid = 0.4
 mu_solid = 5e+5
 E = 2 * mu_solid * (1 + nu_solid)
@@ -54,7 +54,7 @@ lambda_solid = E * nu_solid / ((1 + nu_solid) * (1 - 2 * nu_solid))
 rho_fluid = 1000.0
 
 # Boundaries values
-U_mean = 0.2
+U_mean = 1
 
 log("=" * 60)
 log("Problem Parameters")
