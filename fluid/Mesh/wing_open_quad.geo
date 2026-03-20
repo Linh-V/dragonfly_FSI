@@ -128,7 +128,7 @@ Physical Curve("Wing", 5) = {wing_boundary[]};
 // Mesh controls
 ////////////////////////////////////////////////////////////
 
-res_min = thickness;
+res_min = thickness/2;
 lc_max =  L;
 
 Field[1] = Distance;
