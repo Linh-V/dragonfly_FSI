@@ -8,7 +8,8 @@ from Functions import verify_regions
 # DFG 2D-3 Benchmark: Cylinder in Channel
 ###########################
 """
-The goal is to solve the full Navier-Stokes equations for a cylinder immersed in a fluid,
+The goal is to solve the full Navier-Stokes equations for a cylinder immersed in a fluid 
+with a pressure correction method,
 following the benchmark description available at:
 https://jsdokken.com/dolfinx-tutorial/chapter2/ns_code2.html
 """

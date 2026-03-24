@@ -1,3 +1,11 @@
+"""
+Example of a 2D flow around a cylinder in a channel. 
+The geometry and mesh are created using Gmsh's Python API, and the Navier-Stokes equations are solved using FEniCSx. 
+Implementation from https://jsdokken.com/dolfinx-tutorial/chapter2/ns_code2.html
+
+"""
+
+
 import gmsh
 import os
 import numpy as np

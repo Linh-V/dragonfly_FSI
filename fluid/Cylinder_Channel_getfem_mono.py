@@ -1,3 +1,6 @@
+"""
+This script implements the flow around a cylinder in a channel benchmark using GetFEM and the N-S equations
+"""
 import getfem as gf 
 import numpy as np
 import os
@@ -7,7 +10,7 @@ import os
 # DFG 2D-3 Benchmark: Cylinder in Channel
 ###########################
 """
-The goal is to solve stoke time variant problem
+The goal is to solve Navier-Stokes time variant problem
 """
 
 # Generate the mesh
@@ -139,7 +142,8 @@ if __name__ == "__main__":
 
     # Crank-Nicolson diffusion: 0.5*(mu*∇²(u+u_n))f
     md.add_linear_term(mim, ' 0.5*mu*(Grad_u):Grad_Test_u', FLUID) 
-    md.add_source_term(mim, '-0.5*mu*(Grad_u_n):Grad_Test_u', FLUID) 
+    md.add_source_term(mim, '-0.5*mu*(Grad_u_n):Grad_Test_u', FLUID)
+     
     #Convection (Adams-Bashforth): (1.5*u_n - 0.5*u_n1)*0.5*Grad(u+un)
     md.add_linear_term(mim,
         '0.5*rho*(Grad_u.(1.5*u_n - 0.5*u_n1)).Test_u', FLUID)
