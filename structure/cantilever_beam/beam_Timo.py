@@ -1,6 +1,17 @@
-# 1D Cantilever Beam
+"""
+1D Cantilever Beam using Timoshenko beam theory
 
-# Analytical solution: Max deflection = -PL^3/3EI
+Governing equations: 
+- Shear force equilibrium: dV/dx = 0
+- Moment equilibrium: dM/dx = V
+- Constitutive relations: M = EI * dtheta/dx, V = kGA * (dw/dx - theta)
+
+Boundary conditions:
+At x=0 (fixed end): w(0) = 0, theta(0) = 0
+At x=L (free end): M(L) = 0, V(L) = F
+
+Analytical solution: Max deflection = -PL^3/3EI
+"""
 
 import getfem as gf 
 import numpy as np
